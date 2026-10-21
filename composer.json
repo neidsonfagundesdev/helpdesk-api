@@ -1,0 +1,16 @@
+{
+    "name": "neidson/helpdesk-api",
+    "description": "API RESTful para gerenciamento de chamados com autenticacao e autorizacao",
+    "type": "project",
+    "require": {
+        "php": ">=8.2",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "ext-mbstring": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    }
+}
