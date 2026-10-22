@@ -24,6 +24,13 @@ if ($metodo === "POST" && $rota === "/usuarios") {
     exit;
 }
 
+//Rota para login
+if ($metodo === "POST" && $rota === "/login") {
+    $controller->login();
+    exit;
+}
+
 //caso nenhuma resposta seja encontrada
 http_response_code(404);
 echo json_encode(["erro" => "Rota não encontrada."]);
+

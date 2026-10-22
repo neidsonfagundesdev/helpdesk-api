@@ -13,7 +13,7 @@ class UsuarioService
     {
         $this->repository = $repository;
     }
-
+    //cria com os dados recebidos    
     public function criar(string $nome, string $email, string $senha): int
     {
         //valida nome
@@ -57,5 +57,25 @@ class UsuarioService
         $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
         //chama repository
         return $this->repository->criar($nome, $email, $senhaHash);
+    }
+    //
+    public function login(string $email, string $senha): array
+    {
+        $email = strtolower(trim($email));
+
+        $usuario = $this->repository->buscarPorEmail($email);
+
+        if ($usuario === null) {
+            throw new Exception("E-mail ou senha inválidos.");
+        }
+        //password_verify compara a senha em texto puro com o hash salvo no banco.
+        //retorna um valor booleano
+        if (!password_verify($senha, $usuario["senha"])) {
+            throw new Exception("E-mail ou senha inválidos.");
+        }
+        //remove a senha da variavel
+        unset($usuario["senha"]);
+
+        return $usuario;
     }
 }

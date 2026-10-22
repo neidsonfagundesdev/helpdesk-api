@@ -88,4 +88,59 @@ class usuarioController
             echo json_encode(["erro" => $erro->getMessage()]);
         }
     }
+
+    public function login(): void
+    {
+        $corpo = file_get_contents("php://input");
+
+        try {
+            $dadosObjeto = json_decode(
+                $corpo,
+                false,
+                512,
+                JSON_THROW_ON_ERROR
+            );
+
+        } catch (\JsonException $erro) {
+            http_response_code(400);
+            echo json_encode(["erro" => "JSON inválido."]);
+            exit;
+        }
+
+        if (!is_object($dadosObjeto)) {
+            http_response_code(400);
+            echo json_encode(["erro" => "O corpo deve ser um objeto JSON."]);
+            exit;
+        }
+
+        $dados = (array) $dadosObjeto;
+
+        $email = $dados["email"] ?? null;
+        $senha = $dados["senha"] ?? null;
+
+        if (!is_string($email)) {
+            http_response_code(400);
+            echo json_encode(["erro" => "E-mail deve ser um texto."]);
+            exit;
+        }
+
+        if (!is_string($senha)) {
+            http_response_code(400);
+            echo json_encode(["erro" => "Senha deve ser um texto."]);
+            exit;
+        }
+
+        try {
+            
+            $usuario = $this->service->login($email, $senha);
+
+            http_response_code(200);
+
+            echo json_encode(["mensagem" => "login realizado com sucesso.", "usuario" => $usuario]);
+
+        } catch (Exception $erro) {
+            http_response_code(401); //Unauthorized -> Você não conseguiu provar quem é.
+            echo json_encode(["erro" => $erro->getMessage()]);
+        }
+    }
 }
