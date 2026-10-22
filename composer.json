@@ -6,7 +6,8 @@
         "php": ">=8.2",
         "ext-pdo": "*",
         "ext-pdo_mysql": "*",
-        "ext-mbstring": "*"
+        "ext-mbstring": "*",
+        "firebase/php-jwt": "*"
     },
     "autoload": {
         "psr-4": {

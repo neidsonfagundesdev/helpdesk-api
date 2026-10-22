@@ -8,11 +8,14 @@ use Exception;
 class UsuarioService
 {
     private UsuarioRepository $repository;
+    private TokenService $tokenService;
 
-    public function __construct(UsuarioRepository $repository)
+    public function __construct(UsuarioRepository $repository, TokenService $tokenService)
     {
         $this->repository = $repository;
+        $this->tokenService = $tokenService;
     }
+
     //cria com os dados recebidos    
     public function criar(string $nome, string $email, string $senha): int
     {
@@ -58,7 +61,8 @@ class UsuarioService
         //chama repository
         return $this->repository->criar($nome, $email, $senhaHash);
     }
-    //
+
+    //valida o login por usuario e senha
     public function login(string $email, string $senha): array
     {
         $email = strtolower(trim($email));
@@ -73,8 +77,25 @@ class UsuarioService
         if (!password_verify($senha, $usuario["senha"])) {
             throw new Exception("E-mail ou senha inválidos.");
         }
+        //gera o token    
+        $token = $this->tokenService->gerarToken($usuario);
+
         //remove a senha da variavel
         unset($usuario["senha"]);
+
+        //retorna usuario e token    
+        return ["usuario" => $usuario, "token" => $token];
+    }
+
+    //busca por usuario autenticado
+    //caso nao exista retorna a mensagem. Se existir, retorna os dados.
+    public function buscarUsuarioAutenticado(int $id): array
+    {
+        $usuario = $this->repository->buscarPorId($id);
+
+        if ($usuario === null) {
+            throw new Exception("Usuário não encontrado.");
+        }
 
         return $usuario;
     }

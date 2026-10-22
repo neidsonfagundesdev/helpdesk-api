@@ -42,4 +42,20 @@ class UsuarioRepository
         return $usuario ?: null;
     }
 
+    //busca por id
+    public function buscarPorId(int $id): ?array
+    {
+        $sql = "SELECT id, nome, email, perfil, created_at FROM usuarios WHERE id = :id";
+
+        $stmt = $this->pdo->prepare($sql);
+
+        $stmt->execute([
+            "id" => $id
+        ]);
+
+        $usuario =$stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $usuario ?: null;
+    }
+
 }

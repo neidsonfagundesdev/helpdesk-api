@@ -132,14 +132,35 @@ class usuarioController
 
         try {
             
-            $usuario = $this->service->login($email, $senha);
+            $resultado = $this->service->login($email, $senha);
 
             http_response_code(200);
 
-            echo json_encode(["mensagem" => "login realizado com sucesso.", "usuario" => $usuario]);
+            echo json_encode(["mensagem" => "Login realizado com sucesso.", 
+            "usuario" => $resultado["usuario"],
+            "token" => $resultado["token"]
+            ]);
 
         } catch (Exception $erro) {
             http_response_code(401); //Unauthorized -> Você não conseguiu provar quem é.
+            echo json_encode(["erro" => $erro->getMessage()]);
+        }
+    }
+
+    //me -> mostre quem eu sou!
+    //recebe o id autenticado, chama o service,
+    // devolve 200 com o usuario, caso não exista mais devolve 404
+    public function me(int $usuarioId): void
+    {
+        try {
+            $usuario = $this->service->buscarUsuarioAutenticado($usuarioId);
+
+            http_response_code(200);
+
+            echo json_encode(["usuario" => $usuario]);
+
+        } catch (Exception $erro) {
+            http_response_code(404);
             echo json_encode(["erro" => $erro->getMessage()]);
         }
     }
