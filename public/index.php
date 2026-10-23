@@ -192,6 +192,49 @@ try{
 
     }
 
+    $metodosPermitidos = [
+        "/usuarios" => ["POST"],
+        "/login" => ["POST"],
+        "/me" => ["GET"],
+        "/chamados" => ["GET", "POST"]
+    ];
+
+    //pergunta se essa rota existe na nossa lista
+    if (isset($metodosPermitidos[$rota])) {
+        $permitidos = $metodosPermitidos[$rota];
+
+        /*implode transforma, por exemplo: ["GET", "POST"] em GET, POST
+        para podermos enviar Allow: GET, POST*/
+        header("Allow: " . implode(", ", $permitidos));
+
+        //405 Method Not Allowed
+        //O servidor encontrou a rota/URL, mas o método HTTP usado na requisição
+        //não é permitido para ela. Ex.: fazer POST em uma rota que só aceita GET.
+        http_response_code(405);
+        echo json_encode(["erro" => "Método não permitido."]);
+        exit;
+    }
+    
+    //trata as rotas dinamicas
+    if (preg_match("#^/chamados/([1-9][0-9]*)$#", $rota)) {
+
+        header("Allow: GET, PATCH, DELETE");
+
+        http_response_code(405);
+        echo json_encode(["erro" => "Método não permitido."]);
+        exit;
+    }
+
+    //para status
+    if (preg_match("#^/chamados/([1-9][0-9]*)/status$#", $rota)) {
+
+        header("Allow: PATCH");
+
+        http_response_code(405);
+        echo json_encode(["erro" => "Método não permitido."]);
+        exit;
+    }
+
     //caso nenhuma resposta seja encontrada
     http_response_code(404);
     echo json_encode(["erro" => "Rota não encontrada."]);
