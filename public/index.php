@@ -108,11 +108,13 @@ try{
             $dadosToken = $authMiddleware->autenticar();
 
             $usuarioId = (int) $dadosToken["sub"];
+            $perfil = $dadosToken["perfil"];
             $chamadoId = (int) $matches[1];
 
             $chamadoController->buscarPorId(
                 $chamadoId,
-                $usuarioId
+                $usuarioId,
+                $perfil
             );
 
         } catch (\Exception $erro) {
@@ -168,7 +170,7 @@ try{
     /chamados/2/status
     /chamados/15/status 
     captura o ID em $matches[1]*/
-    if ($metodo === "PATCH"&& preg_match("#^/chamados/([1-9][0-9]*)/status$#", $rota, $matches)) {
+    if ($metodo === "PATCH" && preg_match("#^/chamados/([1-9][0-9]*)/status$#", $rota, $matches)) {
 
         try {
             $dadosToken = $authMiddleware->autenticar();

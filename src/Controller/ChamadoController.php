@@ -105,12 +105,13 @@ class ChamadoController
         }
     }
 
-    public function buscarPorId(int $id, int $usuarioId): void
+    public function buscarPorId(int $id, int $usuarioId, string $perfil): void
     {
         try {
             $chamado = $this->service->buscarPorId(
                 $id,
-                $usuarioId
+                $usuarioId,
+                $perfil
             );
 
             http_response_code(200);

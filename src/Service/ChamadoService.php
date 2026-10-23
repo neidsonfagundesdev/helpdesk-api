@@ -50,9 +50,15 @@ class ChamadoService
         return $this->repository->listarPorUsuario($usuarioId);
     }
 
-    public function buscarPorId(int $id, int $usuarioId): array
+    //busca por id
+    public function buscarPorId(int $id, int $usuarioId, string $perfil): array
     {
-        $chamado = $this->repository->buscarPorId($id, $usuarioId);
+        //se for o admin busca todos chamados, user busca apenas o vinculado a ele
+        if ($perfil === "admin") {
+            $chamado = $this->repository->buscarPorIdGlobal($id);
+        } else {
+            $chamado = $this->repository->buscarPorId($id, $usuario);
+        }
 
         if ($chamado === null) {
             throw new Exception("Chamado não encontrado.");
