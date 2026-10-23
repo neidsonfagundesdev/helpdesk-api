@@ -55,4 +55,52 @@ class ChamadoService
 
         return $chamado;
     }
+
+        public function atualizar(int $id, int $usuarioId, ?string $titulo, ?string $descricao): array
+    {
+        // Verifica se o chamado existe e pertence ao usuário
+        $chamado = $this->repository->buscarPorId($id, $usuarioId);
+
+        if ($chamado === null) {
+            throw new Exception("Chamado não encontrado.");
+        }
+
+        // PATCH precisa receber pelo menos um campo
+        if ($titulo === null && $descricao === null) {
+            throw new Exception("Informe ao menos um campo para atualizar.");
+        }
+
+        // Só valida título se ele foi enviado
+        if ($titulo !== null) {
+            $titulo = trim($titulo);
+
+            if ($titulo === "") {
+                throw new Exception("Título não pode estar vazio.");
+            }
+
+            if (mb_strlen($titulo, "UTF-8") > 150) {
+                throw new Exception("Título deve ter no máximo 150 caracteres.");
+            }
+        }
+
+        // Só valida descrição se ela foi enviada
+        if ($descricao !== null) {
+            $descricao = trim($descricao);
+
+            if ($descricao === "") {
+                throw new Exception("Descrição não pode estar vazia.");
+            }
+        }
+
+        $this->repository->atualizar(
+            $id,
+            $usuarioId,
+            $titulo,
+            $descricao
+        );
+
+        // Busca novamente para devolver o chamado já atualizado
+        return $this->repository->buscarPorId($id, $usuarioId);
+    }
+
 }

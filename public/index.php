@@ -78,6 +78,7 @@ try{
 
     //método get para listar os chamados
     if ($metodo === "GET" && $rota === "/chamados") {
+
     try {
         $dadosToken = $authMiddleware->autenticar();
 
@@ -98,6 +99,7 @@ try{
     * /chamados/25
     * /chamados/999*/
     if ($metodo === "GET" && preg_match("#^/chamados/([1-9][0-9]*)$#", $rota, $matches)) {
+
     try {
         $dadosToken = $authMiddleware->autenticar();
 
@@ -118,6 +120,26 @@ try{
     }
 
     exit;
+
+    }
+
+    if ($metodo === "PATCH" && preg_match("#^/chamados/([1-9][0-9]*)$#", $rota, $matches)) {
+        
+    try {
+        $dadosToken = $authMiddleware->autenticar();
+
+        $usuarioId = (int) $dadosToken["sub"];
+        $chamadoId = (int) $matches[1];
+
+        $chamadoController->atualizar($chamadoId, $usuarioId);
+
+    } catch (\Exception $erro) {
+        http_response_code(401);
+        echo json_encode(["erro" => $erro->getMessage()]);
+    }
+
+    exit;
+
     }
 
     //caso nenhuma resposta seja encontrada

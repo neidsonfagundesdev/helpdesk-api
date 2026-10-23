@@ -64,4 +64,30 @@ class ChamadoRepository
 
         return $chamado ?: null;
     }
+
+        //O ? antes do tipo indica “nullable” (aceita null)
+        //agora o método retorna bool: 
+        //true  → alguma linha foi alterada, false → nenhuma linha foi alterada
+        public function atualizar(int $id, int $usuarioId, ?string $titulo, ?string $descricao): bool
+    {   
+        //COALESCE permite PATCH parcial
+        //ex.: alterar o titulo e manter a descricao antiga ou alterar a descricao e manter o titulo
+        $sql = "UPDATE chamados
+                SET titulo = COALESCE(:titulo, titulo),
+                    descricao = COALESCE(:descricao, descricao)
+                WHERE id = :id
+                AND usuario_id = :usuario_id";
+
+        $stmt = $this->pdo->prepare($sql);
+
+        $stmt->execute([
+            "titulo" => $titulo,
+            "descricao" => $descricao,
+            "id" => $id,
+            "usuario_id" => $usuarioId
+        ]);
+
+        //$stmt->rowCount() devolve a quantidade de linhas afetadas pela execução
+        return $stmt->rowCount() > 0;
+    }
 }

@@ -128,4 +128,83 @@ class ChamadoController
         }
     }
 
+        public function atualizar(int $id, int $usuarioId): void
+    {
+        $corpo = file_get_contents("php://input");
+
+        try {
+            $dadosObjeto = json_decode(
+                $corpo,
+                false,
+                512,
+                JSON_THROW_ON_ERROR
+            );
+
+        } catch (\JsonException $erro) {
+            http_response_code(400);
+            echo json_encode(["erro" => "JSON inválido."]);
+            return;
+        }
+
+        if (!is_object($dadosObjeto)) {
+            http_response_code(400);
+            echo json_encode(["erro" => "O corpo deve ser um objeto JSON."]);
+            return;
+        }
+
+        $dados = (array) $dadosObjeto;
+
+        $titulo = null;
+        $descricao = null;
+
+        if (array_key_exists("titulo", $dados)) {
+            if (!is_string($dados["titulo"])) {
+                http_response_code(400);
+                echo json_encode(["erro" => "Título deve ser um texto."]);
+                return;
+            }
+
+            $titulo = $dados["titulo"];
+        }
+
+        if (array_key_exists("descricao", $dados)) {
+            if (!is_string($dados["descricao"])) {
+                http_response_code(400);
+                echo json_encode(["erro" => "Descrição deve ser um texto."]);
+                return;
+            }
+
+            $descricao = $dados["descricao"];
+        }
+
+        try {
+            $chamado = $this->service->atualizar(
+                $id,
+                $usuarioId,
+                $titulo,
+                $descricao
+            );
+
+            http_response_code(200);
+
+            echo json_encode(["chamado" => $chamado]);
+
+        } catch (PDOException $erro) {
+            error_log($erro->getMessage());
+
+            http_response_code(500);
+
+            echo json_encode(["erro" => "Erro interno do servidor."]);
+
+        } catch (Exception $erro) {
+            //operador ternario, se a mensagem que retorna for exatamente
+            //a string comparada status 404 se não 400
+            $status = $erro->getMessage() === "Chamado não encontrado." ? 404 : 400;
+
+            http_response_code($status);
+
+            echo json_encode(["erro" => $erro->getMessage()]);
+        }
+    }
+
 }
