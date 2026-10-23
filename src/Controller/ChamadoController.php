@@ -89,10 +89,10 @@ class ChamadoController
         }
     }
 
-    public function listar(int $usuarioId): void
+    public function listar(int $usuarioId, string $perfil): void
     {
         try {
-            $chamados = $this->service->listarPorUsuario($usuarioId);
+            $chamados = $this->service->listar($usuarioId, $perfil);
 
             http_response_code(200);
 
@@ -221,6 +221,75 @@ class ChamadoController
 
         } catch (Exception $erro) {
             http_response_code(404);
+            echo json_encode(["erro" => $erro->getMessage()]);
+        }
+    }
+    
+    //atualiza status
+    public function atualizarStatus(int $id, string $perfil): void
+    {
+        $corpo = file_get_contents("php://input");
+
+        try {
+            $dadosObjeto = json_decode(
+                $corpo,
+                false,
+                512,
+                JSON_THROW_ON_ERROR
+            );
+
+        } catch (\JsonException $erro) {
+            http_response_code(400);
+            echo json_encode(["erro" => "JSON inválido."]);
+            return;
+        }
+
+        if (!is_object($dadosObjeto)) {
+            http_response_code(400);
+            echo json_encode(["erro" => "O corpo deve ser um objeto JSON."]);
+            return;
+        }
+
+        $dados = (array) $dadosObjeto;
+
+        $status = $dados["status"] ?? null;
+
+        if (!is_string($status)) {
+            http_response_code(400);
+            echo json_encode(["erro" => "Status deve ser um texto."]);
+            return;
+        }
+
+        try {
+            $chamado = $this->service->atualizarStatus(
+                $id,
+                $status,
+                $perfil
+            );
+
+            http_response_code(200);
+
+            echo json_encode([
+                "chamado" => $chamado
+            ]);
+
+        } catch (PDOException $erro) {
+            error_log($erro->getMessage());
+            http_response_code(500);
+            echo json_encode(["erro" => "Erro interno do servidor."]);
+
+        } catch (Exception $erro) {
+
+            if ($erro->getMessage() === "Acesso negado.") {
+                http_response_code(403);//→ 403 Forbidden → user tentando alterar status
+
+            } elseif ($erro->getMessage() === "Chamado não encontrado.") {
+                http_response_code(404);
+
+            } else {
+                http_response_code(400);
+            }
+
             echo json_encode(["erro" => $erro->getMessage()]);
         }
     }

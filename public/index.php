@@ -85,8 +85,9 @@ try{
             $dadosToken = $authMiddleware->autenticar();
 
             $usuarioId = (int) $dadosToken["sub"];
+            $perfil = $dadosToken["perfil"];//verifica tambem o perfil para os casos do ADM
 
-            $chamadoController->listar($usuarioId);
+            $chamadoController->listar($usuarioId, $perfil);
 
         } catch (\Exception $erro) {
             http_response_code(401);
@@ -161,6 +162,32 @@ try{
         }
 
         exit;
+    }
+
+    /*Essa regex aceita rotas como:
+    /chamados/2/status
+    /chamados/15/status 
+    captura o ID em $matches[1]*/
+    if ($metodo === "PATCH"&& preg_match("#^/chamados/([1-9][0-9]*)/status$#", $rota, $matches)) {
+
+        try {
+            $dadosToken = $authMiddleware->autenticar();
+
+            $perfil = $dadosToken["perfil"];
+            $chamadoId = (int) $matches[1];
+
+            $chamadoController->atualizarStatus(
+                $chamadoId,
+                $perfil
+            );
+
+        } catch (\Exception $erro) {
+            http_response_code(401);
+            echo json_encode(["erro" => $erro->getMessage()]);
+        }
+
+        exit;
+
     }
 
     //caso nenhuma resposta seja encontrada

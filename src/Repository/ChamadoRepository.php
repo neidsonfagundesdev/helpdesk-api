@@ -32,6 +32,7 @@ class ChamadoRepository
         return (int) $this->pdo->lastInsertId();
     }
 
+    //lista por usuario
     public function listarPorUsuario(int $usuarioId): array
     {
         $sql = "SELECT id, usuario_id, titulo, descricao, status, created_at, updated_at
@@ -46,6 +47,7 @@ class ChamadoRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    //busca pelo id
     public function buscarPorId(int $id, int $usuarioId): ?array
     {
         $sql = "SELECT id, usuario_id, titulo, descricao, status, created_at, updated_at
@@ -65,10 +67,10 @@ class ChamadoRepository
         return $chamado ?: null;
     }
 
-        //O ? antes do tipo indica “nullable” (aceita null)
-        //agora o método retorna bool: 
-        //true  → alguma linha foi alterada, false → nenhuma linha foi alterada
-        public function atualizar(int $id, int $usuarioId, ?string $titulo, ?string $descricao): bool
+    //O ? antes do tipo indica “nullable” (aceita null)
+    //agora o método retorna bool: 
+    //true  → alguma linha foi alterada, false → nenhuma linha foi alterada
+    public function atualizar(int $id, int $usuarioId, ?string $titulo, ?string $descricao): bool
     {   
         //COALESCE permite PATCH parcial
         //ex.: alterar o titulo e manter a descricao antiga ou alterar a descricao e manter o titulo
@@ -92,7 +94,7 @@ class ChamadoRepository
     }
 
     //metodo para exclusao de chamado
-        public function excluir(int $id, int $usuarioId): bool
+    public function excluir(int $id, int $usuarioId): bool
     {
         $sql = "DELETE FROM chamados
                 WHERE id = :id
@@ -107,4 +109,56 @@ class ChamadoRepository
 
         return $stmt->rowCount() > 0;
     }
+
+    //metodo para o ADM listar todos os chamados
+    //o adm nao precisa de where ele verá todos os chamados
+    public function listarTodos(): array
+    {
+        $sql = "SELECT id, usuario_id, titulo, descricao, status, created_at, updated_at
+                FROM chamados
+                ORDER BY id DESC";
+
+        $stmt = $this->pdo->prepare($sql);
+
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    //atualiza o status
+    public function atualizarStatus(int $id, string $status): bool
+    {
+        $sql = "UPDATE chamados
+                SET status = :status
+                WHERE id = :id";
+
+        $stmt = $this->pdo->prepare($sql);
+
+        $stmt->execute([
+            "status" => $status,
+            "id" => $id
+        ]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    /*será usado em operações administrativas, 
+    porque o admin pode trabalhar com chamados de qualquer usuário.*/
+    public function buscarPorIdGlobal(int $id): ?array
+    {
+        $sql = "SELECT id, usuario_id, titulo, descricao, status, created_at, updated_at
+                FROM chamados
+                WHERE id = :id";
+
+        $stmt = $this->pdo->prepare($sql);
+
+        $stmt->execute([
+            "id" => $id
+        ]);
+
+        $chamado = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $chamado ?: null;
+    }
+
 }

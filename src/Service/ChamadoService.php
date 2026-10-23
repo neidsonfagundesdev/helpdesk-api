@@ -39,9 +39,14 @@ class ChamadoService
         return $this->repository->criar($usuarioId, $titulo, $descricao);
     }
 
-    //delega busca ao repository
-    public function listarPorUsuario(int $usuarioId): array
+    //delega busca ao repository de acordo com o perfil
+    public function listar(int $usuarioId, string $perfil): array
     {
+        if ($perfil === "admin") {//ADM lista todos os chamados
+            return $this->repository->listarTodos();
+        }
+        
+        //usuario comum lista todos os chamados ligados a ele pelo id
         return $this->repository->listarPorUsuario($usuarioId);
     }
 
@@ -116,4 +121,39 @@ class ChamadoService
             throw new Exception("Chamado não encontrado.");
         }
     }
+
+    //atualiza o status
+    public function atualizarStatus(int $id, string $status, string $perfil): array
+    {
+        if ($perfil !== "admin") {
+            throw new Exception("Acesso negado.");
+        }
+
+        $status = trim($status);
+
+        $statusPermitidos = [
+            "aberto",
+            "em_andamento",
+            "resolvido"
+        ];
+
+        //O valor recebido está dentro desta lista? Se não, retorna o erro.
+        if (!in_array($status, $statusPermitidos, true)) {
+            throw new Exception("Status inválido.");
+        }
+
+        $chamado = $this->repository->buscarPorIdGlobal($id);
+
+        if ($chamado === null) {
+            throw new Exception("Chamado não encontrado.");
+        }
+
+        $this->repository->atualizarStatus(
+            $id,
+            $status
+        );
+
+        return $this->repository->buscarPorIdGlobal($id);
+    }
+
 }
