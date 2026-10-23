@@ -128,7 +128,7 @@ class ChamadoController
         }
     }
 
-        public function atualizar(int $id, int $usuarioId): void
+    public function atualizar(int $id, int $usuarioId): void
     {
         $corpo = file_get_contents("php://input");
 
@@ -203,6 +203,24 @@ class ChamadoController
 
             http_response_code($status);
 
+            echo json_encode(["erro" => $erro->getMessage()]);
+        }
+    }
+
+    public function excluir(int $id, int $usuarioId): void
+    {
+        try {
+            $this->service->excluir($id, $usuarioId);
+            //204 -> No Content significa: a requisição deu certo, mas não há corpo de resposta.
+            http_response_code(204);
+
+        } catch (PDOException $erro) {
+            error_log($erro->getMessage());
+            http_response_code(500);
+            echo json_encode(["erro" => "Erro interno do servidor."]);
+
+        } catch (Exception $erro) {
+            http_response_code(404);
             echo json_encode(["erro" => $erro->getMessage()]);
         }
     }

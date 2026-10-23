@@ -90,4 +90,21 @@ class ChamadoRepository
         //$stmt->rowCount() devolve a quantidade de linhas afetadas pela execução
         return $stmt->rowCount() > 0;
     }
+
+    //metodo para exclusao de chamado
+        public function excluir(int $id, int $usuarioId): bool
+    {
+        $sql = "DELETE FROM chamados
+                WHERE id = :id
+                AND usuario_id = :usuario_id";
+
+        $stmt = $this->pdo->prepare($sql);
+
+        $stmt->execute([
+            "id" => $id,
+            "usuario_id" => $usuarioId
+        ]);
+
+        return $stmt->rowCount() > 0;
+    }
 }

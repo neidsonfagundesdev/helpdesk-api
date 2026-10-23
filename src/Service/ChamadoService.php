@@ -103,4 +103,17 @@ class ChamadoService
         return $this->repository->buscarPorId($id, $usuarioId);
     }
 
+    //metodo para excluir chamado. 
+    //vai transformar o false do chamado repository em "chamado nao encontrado"
+        public function excluir(int $id, int $usuarioId): void
+    {
+        $excluido = $this->repository->excluir($id, $usuarioId);
+
+        /*Repository retorna false
+        → chamado não existe ou pertence a outro usuário
+        → Service lança "Chamado não encontrado." */
+        if (!$excluido) {
+            throw new Exception("Chamado não encontrado.");
+        }
+    }
 }
