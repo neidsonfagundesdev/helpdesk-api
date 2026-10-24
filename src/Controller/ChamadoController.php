@@ -235,6 +235,21 @@ class ChamadoController
     //atualiza status
     public function atualizarStatus(int $id, string $perfil): void
     {
+        //verifica antes se o usuario pode alterar status
+        //caso alguém chame atualizarStatus() por outro caminho
+        try {
+            $this->service->validarPermissaoAlterarStatus($perfil);
+
+        } catch (AutorizacaoException $erro) {
+            http_response_code(403);
+
+            echo json_encode([
+                "erro" => $erro->getMessage()
+            ]);
+
+            return;
+        }
+
         $corpo = file_get_contents("php://input");
 
         try {

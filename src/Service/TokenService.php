@@ -51,6 +51,9 @@ class TokenService
     //valida o token recebido
     public function validarToken(string $token): array
     {   
+        //valida a estrutura do token
+        $this->validarEstruturaToken($token);
+
         //recebe o token, decodifica, verifica a assinatura e varifica a expiracao
         //se estiver certo devolve payload
         try {
@@ -65,6 +68,58 @@ class TokenService
         //se estiver errado lanca a excecão
         } catch (\UnexpectedValueException $erro) {
             throw new AutenticacaoException("Token inválido ou expirado.");
+        }
+    }
+
+    //Valida a estrutura básica do JWT antes da decodificação.
+    //Tokens malformados são tratados como erro de autenticação (401).
+    private function validarEstruturaToken(string $token): void
+    {
+        $partes = explode(".", $token);
+
+        if (count($partes) !== 3) {
+            throw new AutenticacaoException("Token inválido.");
+        }
+
+        foreach ($partes as $parte) {
+            if (
+                $parte === ""
+                || !preg_match('/^[A-Za-z0-9_-]+$/', $parte)
+            ) {
+                throw new AutenticacaoException("Token inválido.");
+            }
+        }
+
+        // Header e payload precisam conter JSON válido.
+        foreach (array_slice($partes, 0, 2) as $parte) {
+            $base64 = strtr($parte, "-_", "+/");
+
+            $resto = strlen($base64) % 4;
+
+            if ($resto !== 0) {
+                $base64 .= str_repeat("=", 4 - $resto);
+            }
+
+            $json = base64_decode($base64, true);
+
+            if ($json === false) {
+                throw new AutenticacaoException("Token inválido.");
+            }
+
+            try {
+                $dados = json_decode(
+                    $json,
+                    true,
+                    512,
+                    JSON_THROW_ON_ERROR
+                );
+            } catch (\JsonException $erro) {
+                throw new AutenticacaoException("Token inválido.");
+            }
+
+            if (!is_array($dados)) {
+                throw new AutenticacaoException("Token inválido.");
+            }
         }
     }
 }

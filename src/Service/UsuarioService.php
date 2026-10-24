@@ -3,8 +3,9 @@
 namespace App\Service;
 
 use App\Exception\AutenticacaoException;
+use App\Exception\RecursoNaoEncontradoException;
+use App\Exception\ValidacaoException;
 use App\Repository\UsuarioRepository;
-use Exception;
 
 class UsuarioService
 {
@@ -24,18 +25,18 @@ class UsuarioService
         $nome = trim($nome);
 
         if ($nome === "") {
-            throw new Exception("Nome não pode estar vazio.");
+            throw new ValidacaoException("Nome não pode estar vazio.");
         }
 
         if (mb_strlen($nome, "UTF-8") > 150) {
-            throw new Exception("Nome deve ter no máximo 150 caracteres.");
+            throw new ValidacaoException("Nome deve ter no máximo 150 caracteres.");
         }
         //valida email
         //transforma tudo em minusculo e remove espacos
         $email = strtolower(trim($email));
 
         if ($email === "") {
-            throw new Exception("E-mail não pode estar vazio.");
+            throw new ValidacaoException("E-mail não pode estar vazio.");
         }
         /*
         filter_var() significa basicamente:
@@ -43,19 +44,28 @@ class UsuarioService
         Aqui o filtro é: FILTER_VALIDATE_EMAIL
         */
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new Exception("E-mail inválido.");
+            throw new ValidacaoException("E-mail inválido.");
         }
         //verifica email duplicado
         $usuarioExistente = $this->repository->buscarPorEmail($email);
 
         if ($usuarioExistente !== null) {
-            throw new Exception("E-mail já cadastrado.");
+            throw new ValidacaoException("E-mail já cadastrado.");
         }
 
         //valida senha
         if (strlen($senha) < 8) {
             throw new Exception("Senha deve possuir no mínimo 8 caracteres.");
         }
+
+        // O bcrypt considera no máximo 72 bytes da senha.
+        // Evita aceitar uma senha maior e ignorar silenciosamente o restante.
+        if (strlen($senha) > 72) {
+            throw new ValidacaoException(
+                "Senha deve possuir no máximo 72 bytes."
+            );
+        }
+
         //Gera hash. É uma "impressão digital" do texto. Serve para esconder senhas de forma segura. 
         // Diferente de criptografia, o hash NÃO tem volta (não dá para "desembaralhar").
         $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
@@ -95,7 +105,7 @@ class UsuarioService
         $usuario = $this->repository->buscarPorId($id);
 
         if ($usuario === null) {
-            throw new Exception("Usuário não encontrado.");
+            throw new RecursoNaoEncontradoException("Usuário não encontrado.");
         }
 
         return $usuario;

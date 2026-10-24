@@ -22,9 +22,11 @@ class AuthMiddleware
         if ($authorization === null) {
             throw new AutenticacaoException("Token não informado.");
         }
-        // Verifica se o header segue o formato: Bearer TOKEN
-        if (!str_starts_with($authorization, "Bearer ")) {
-            throw new AutenticacaoException("Formato de Token inválido.");
+
+        // O esquema Bearer não diferencia maiúsculas de minúsculas.
+        // Aceita, por exemplo: Bearer, bearer ou BEARER.
+        if (strncasecmp($authorization, "Bearer ", 7) !== 0) {
+            throw new AutenticacaoException("Formato de token inválido.");
         }
 
         // Remove "Bearer " e elimina espaços extras
@@ -38,10 +40,30 @@ class AuthMiddleware
         //Confirma se o token possui um ID de usuário válido e um perfil permitido.
         $dadosToken = $this->tokenService->validarToken($token);
 
-        // Confirma se o perfil presente no token é permitido.
+        //Valida os claims de tempo obrigatórios do JWT: emissão (iat) e expiração (exp).
+        //Garante que o token possui data de emissão e expiração válidas.
+        //Isso evita aceitar tokens sem prazo de validade ou com claims de tempo inválidos.
+        if (
+            !isset($dadosToken["exp"])
+            || !is_int($dadosToken["exp"])
+            || $dadosToken["exp"] <= time()
+        ) {
+            throw new AutenticacaoException("Token inválido ou expirado.");
+        }
+
+        if (
+            !isset($dadosToken["iat"])
+            || !is_int($dadosToken["iat"])
+            || $dadosToken["iat"] <= 0
+        ) {
+            throw new AutenticacaoException("Token inválido.");
+        }
+
+        //Garante que o identificador do usuário seja um inteiro positivo.
+        //Evita aceitar valores como 6.5 ou "6e0" e convertê-los para outro ID.
         if (
             !isset($dadosToken["sub"])
-            || !is_numeric($dadosToken["sub"])
+            || !is_int($dadosToken["sub"])
             || (int) $dadosToken["sub"] <= 0
         ) {
             throw new AutenticacaoException("Token inválido.");

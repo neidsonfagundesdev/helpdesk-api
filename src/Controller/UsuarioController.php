@@ -2,9 +2,10 @@
 
 namespace App\Controller;
 
+use App\Exception\RecursoNaoEncontradoException;
+use App\Exception\ValidacaoException;
 use App\Exception\AutenticacaoException;
 use App\Service\UsuarioService;
-use Exception;
 use PDOException;
 
 class UsuarioController
@@ -84,7 +85,7 @@ class UsuarioController
             http_response_code(500);
             echo json_encode(["erro" => "Erro interno do servidor."]);
 
-        } catch (Exception $erro) {
+        } catch (ValidacaoException $erro) {
             http_response_code(400);
             echo json_encode(["erro" => $erro->getMessage()]);
         }
@@ -170,7 +171,7 @@ class UsuarioController
             http_response_code(500);
             echo json_encode(["erro" => "Erro interno do servidor."]);
 
-        } catch (Exception $erro) {
+        } catch (RecursoNaoEncontradoException $erro) {
             http_response_code(404);
             echo json_encode(["erro" => $erro->getMessage()]);
         }

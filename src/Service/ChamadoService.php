@@ -41,6 +41,12 @@ class ChamadoService
             throw new ValidacaoException("Descrição não pode estar vazia.");
         }
 
+        //A coluna TEXT do banco suporta no máximo 65.535 bytes.
+        //Impede que uma descrição maior seja truncada silenciosamente.
+        if (strlen($descricao) > 65535) {
+            throw new ValidacaoException("Descrição deve ter no máximo 65.535 bytes.");
+        }
+
         return $this->repository->criar(
             $usuarioId,
             $titulo,
@@ -139,6 +145,12 @@ class ChamadoService
                     "Descrição não pode estar vazia."
                 );
             }
+
+            if (strlen($descricao) > 65535) {
+                throw new ValidacaoException(
+                    "Descrição deve ter no máximo 65.535 bytes."
+                );
+            }
         }
 
         $this->repository->atualizar(
@@ -148,10 +160,19 @@ class ChamadoService
             $descricao
         );
 
-        return $this->repository->buscarPorId(
+        // Busca novamente o chamado após a atualização.
+        $chamadoAtualizado = $this->repository->buscarPorId(
             $id,
             $usuarioId
         );
+
+        if ($chamadoAtualizado === null) {
+            throw new RecursoNaoEncontradoException(
+                "Chamado não encontrado."
+            );
+        }
+
+        return $chamadoAtualizado;
     }
 
     // Exclui um chamado pertencente ao usuário
@@ -180,11 +201,7 @@ class ChamadoService
     ): array
     {
         // Apenas administradores podem alterar o status
-        if ($perfil !== "admin") {
-            throw new AutorizacaoException(
-                "Acesso negado."
-            );
-        }
+        $this->validarPermissaoAlterarStatus($perfil);
 
         $status = trim($status);
 
@@ -213,6 +230,23 @@ class ChamadoService
             $status
         );
 
-        return $this->repository->buscarPorIdGlobal($id);
+        // Busca novamente o chamado após a alteração do status.
+        $chamadoAtualizado = $this->repository->buscarPorIdGlobal($id);
+
+        if ($chamadoAtualizado === null) {
+            throw new RecursoNaoEncontradoException(
+                "Chamado não encontrado."
+            );
+        }
+
+        return $chamadoAtualizado;
+    }
+
+    // Verifica se o usuário possui permissão para alterar o status dos chamados.
+    public function validarPermissaoAlterarStatus(string $perfil): void
+    {
+        if ($perfil !== "admin") {
+            throw new AutorizacaoException("Acesso negado.");
+        }
     }
 }
