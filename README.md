@@ -2,9 +2,11 @@
 
 API RESTful desenvolvida em PHP puro para gerenciamento de chamados de suporte, com autenticação via JWT, autorização por perfil e persistência em banco de dados MySQL.
 
-O projeto foi desenvolvido com foco na aplicação prática de conceitos de desenvolvimento back-end, arquitetura em camadas, segurança, autenticação, autorização e boas práticas na construção de APIs.
+O projeto foi desenvolvido com foco na aplicação prática de conceitos de desenvolvimento back-end, arquitetura em camadas, segurança, autenticação, autorização, persistência e boas práticas na construção de APIs.
 
-## API em produção
+---
+
+# API em produção
 
 A API está publicada em:
 
@@ -12,12 +14,16 @@ A API está publicada em:
 https://helpdesk-api-2ypt.onrender.com
 ```
 
-### Infraestrutura
+## Infraestrutura utilizada
 
-- **Render** — hospedagem da API PHP
+- **Render** — hospedagem da API
 - **Aiven** — banco de dados MySQL
-- **GitHub** — versionamento e integração com o deploy
+- **GitHub** — versionamento do código
 - **Docker** — ambiente de execução da aplicação
+
+Essa infraestrutura foi configurada durante o deploy do projeto.
+
+Os testes HTTP realizados em produção validaram o comportamento da API, mas não são, por si só, uma comprovação independente da topologia da infraestrutura.
 
 ---
 
@@ -50,7 +56,7 @@ Não existe endpoint público para promover usuários ao perfil `admin`.
 
 O proprietário do chamado é definido através do JWT.
 
-Mesmo que um `usuario_id` seja enviado no JSON, esse valor é ignorado pela aplicação.
+Mesmo que um `usuario_id` seja enviado pelo cliente no JSON, esse valor é ignorado pela aplicação.
 
 Todo novo chamado é criado inicialmente com:
 
@@ -95,7 +101,7 @@ A aplicação utiliza o algoritmo:
 HS256
 ```
 
-A chave utilizada para assinar os tokens é fornecida através da variável de ambiente:
+A chave usada para assinar os tokens é fornecida através da variável:
 
 ```text
 JWT_SECRET
@@ -103,7 +109,7 @@ JWT_SECRET
 
 A chave deve permanecer estável entre reinicializações da aplicação.
 
-Alterar a `JWT_SECRET` invalida os tokens emitidos anteriormente.
+Alterar a `JWT_SECRET` invalida tokens emitidos anteriormente.
 
 ---
 
@@ -134,7 +140,7 @@ Não pode:
 - alterar o status dos chamados;
 - promover usuários para administrador.
 
-Tentativas de consultar, editar ou excluir chamados de outros usuários retornam:
+Tentativas de consultar, editar ou excluir chamados pertencentes a outro usuário retornam:
 
 ```text
 404 Not Found
@@ -151,7 +157,7 @@ Pode:
 - consultar chamados de qualquer usuário;
 - alterar o status dos chamados.
 
-A edição de título/descrição e a exclusão continuam restritas ao **proprietário do chamado**, inclusive quando o usuário autenticado possui perfil `admin`.
+A edição de título/descrição e a exclusão continuam restritas ao **proprietário do chamado**, mesmo quando o usuário possui perfil `admin`.
 
 ---
 
@@ -183,7 +189,7 @@ PATCH  /chamados/{id}/status
 O projeto implementa medidas como:
 
 - hash de senha com `password_hash()`;
-- verificação através de `password_verify()`;
+- verificação com `password_verify()`;
 - autenticação JWT;
 - tokens com expiração;
 - validação de `sub`;
@@ -196,13 +202,20 @@ O projeto implementa medidas como:
 - autorização por perfil;
 - controle de propriedade dos chamados;
 - Prepared Statements com PDO;
+- consultas SQL parametrizadas;
 - proteção contra acesso a chamados de outros usuários;
-- limite de tamanho dos campos;
-- mensagens genéricas para erros internos;
-- variáveis de ambiente para credenciais e secrets;
-- secrets fora do repositório Git.
+- limites de tamanho para campos;
+- respostas genéricas para erros internos;
+- credenciais fornecidas através de variáveis de ambiente;
+- secrets mantidos fora do repositório.
 
-A aplicação não retorna stack traces, mensagens SQL, caminhos internos ou secrets nas respostas de erro esperadas.
+Nos fluxos testados, a API não expõe:
+
+- stack traces;
+- mensagens SQL;
+- caminhos internos do servidor;
+- credenciais;
+- secrets.
 
 ---
 
@@ -236,12 +249,12 @@ Responsável pelas regras de negócio:
 - validações;
 - autenticação;
 - autorização;
-- regras de usuários;
-- regras de chamados.
+- regras relacionadas aos usuários;
+- regras relacionadas aos chamados.
 
 ## Repository
 
-Responsável pela comunicação com o banco através de:
+Responsável pela comunicação com o banco de dados através de:
 
 - PDO;
 - Prepared Statements;
@@ -325,13 +338,11 @@ O diretório `vendor/` é gerado pelo Composer e não é versionado.
 - extensão `pdo_mysql`
 - extensão `mbstring`
 
-O ambiente de produção utiliza PHP através de Docker.
-
 ---
 
 # Instalação local
 
-Após obter o código do projeto:
+Entre na pasta do projeto:
 
 ```bash
 cd helpdesk-api
@@ -347,7 +358,7 @@ composer install
 
 # Banco de dados
 
-O projeto contém:
+O projeto contém o arquivo:
 
 ```text
 schema.sql
@@ -368,9 +379,27 @@ chamados
 
 Existe uma chave estrangeira relacionando cada chamado ao usuário responsável por sua criação.
 
+## Inicialização do banco
+
+Antes de iniciar a API pela primeira vez, execute o arquivo:
+
+```text
+schema.sql
+```
+
+no MySQL ou MariaDB.
+
+O Composer e o Dockerfile **não criam nem inicializam automaticamente o banco de dados**.
+
+A execução do script requer permissões para:
+
+- criar o banco;
+- criar tabelas;
+- criar a chave estrangeira.
+
 > O `schema.sql` cria e seleciona especificamente o banco `helpdesk`.
 
-Caso seja utilizado outro nome através de:
+Caso outro nome seja usado através de:
 
 ```text
 MYSQLDATABASE
@@ -382,11 +411,15 @@ também será necessário adaptar o script SQL.
 
 # Variáveis de ambiente
 
-A aplicação utiliza `getenv()`.
+A aplicação utiliza:
+
+```php
+getenv()
+```
 
 O projeto **não carrega arquivos `.env` automaticamente**.
 
-Adicionar `.env` ao `.gitignore` apenas impede o versionamento desse arquivo.
+Adicionar `.env` ao `.gitignore` apenas impede seu versionamento.
 
 ## Banco
 
@@ -398,7 +431,7 @@ MYSQLUSER
 MYSQLPASSWORD
 ```
 
-Valores padrão utilizados localmente:
+Valores de fallback usados quando as variáveis não estão definidas ou estão vazias, independentemente do ambiente:
 
 ```text
 MYSQLHOST=localhost
@@ -510,7 +543,7 @@ Exemplo:
 }
 ```
 
-Resposta:
+Resposta de sucesso:
 
 ```text
 200 OK
@@ -583,6 +616,8 @@ POST /chamados
 ```
 
 Requer autenticação.
+
+Exemplo:
 
 ```json
 {
@@ -661,7 +696,7 @@ Exemplo parcial:
 }
 ```
 
-A resposta real também pode conter:
+A resposta completa também contém:
 
 ```text
 created_at
@@ -817,7 +852,7 @@ Usuário comum recebe:
 |---|---|
 | `200` | Requisição realizada com sucesso |
 | `201` | Recurso criado |
-| `204` | Operação realizada sem corpo de resposta |
+| `204` | Operação realizada sem corpo |
 | `400` | Dados inválidos |
 | `401` | Credenciais ou autenticação inválidas |
 | `403` | Usuário autenticado sem permissão |
@@ -877,7 +912,7 @@ A resposta enviada ao cliente é genérica.
 
 # Validação do JWT
 
-Além das verificações da biblioteca, a aplicação valida:
+Além das verificações realizadas pela biblioteca, a aplicação valida:
 
 - estrutura do token;
 - estrutura do header;
@@ -900,14 +935,26 @@ Problemas internos de configuração não são mascarados como erro do usuário.
 
 O projeto possui um `Dockerfile` utilizado no deploy.
 
-O container:
+O Dockerfile utiliza:
 
-- utiliza PHP;
-- instala as extensões necessárias;
-- instala dependências com Composer;
-- copia a aplicação;
-- publica o diretório `public/`;
-- utiliza a porta fornecida pelo ambiente.
+```text
+php:8.4-cli
+```
+
+e instala as extensões:
+
+```text
+pdo_mysql
+mbstring
+```
+
+Também utiliza Composer sem dependências de desenvolvimento.
+
+A aplicação é iniciada com o servidor embutido do PHP:
+
+```bash
+php -S 0.0.0.0:${PORT:-10000} -t public public/index.php
+```
 
 O servidor escuta em:
 
@@ -915,19 +962,29 @@ O servidor escuta em:
 0.0.0.0
 ```
 
-utilizando a variável:
+A variável:
 
 ```text
 PORT
 ```
 
-fornecida pelo ambiente de hospedagem.
+é fornecida pelo ambiente de hospedagem.
+
+Caso `PORT` não esteja definida, a aplicação utiliza:
+
+```text
+10000
+```
+
+como fallback.
+
+> Essa configuração atende ao objetivo demonstrativo deste projeto e ao deploy atual. O servidor embutido do PHP não é recomendado como servidor definitivo para aplicações públicas de produção.
 
 ---
 
-# Deploy em produção
+# Deploy
 
-O deploy foi realizado com:
+O deploy utilizado neste projeto segue esta estrutura:
 
 ```text
 GitHub
@@ -941,9 +998,9 @@ Aiven MySQL
 
 ## Render
 
-Responsável por executar a API PHP através do Docker.
+Responsável por executar a API através do Docker.
 
-As seguintes variáveis são configuradas diretamente no ambiente do Render:
+As seguintes variáveis estão configuradas no ambiente de hospedagem:
 
 ```text
 MYSQLHOST
@@ -960,7 +1017,7 @@ Nenhuma credencial de produção está armazenada no repositório.
 
 Responsável pelo banco MySQL utilizado pela aplicação publicada.
 
-O banco utilizado é:
+O banco configurado no deploy é:
 
 ```text
 helpdesk
@@ -972,6 +1029,10 @@ com as tabelas:
 usuarios
 chamados
 ```
+
+Essas informações correspondem à configuração realizada durante o deploy.
+
+Os testes HTTP públicos validam o funcionamento da aplicação e sua persistência observável entre requisições, mas não são utilizados como prova independente do provedor ou da topologia da infraestrutura.
 
 ---
 
@@ -993,10 +1054,12 @@ O projeto passou por testes envolvendo:
 - métodos inválidos;
 - header `Allow`;
 - rotas inexistentes;
-- limites dos campos;
+- limites de campos;
 - persistência;
 - tratamento de exceções;
 - proteção contra exposição de erros internos.
+
+---
 
 ## Validação local
 
@@ -1070,6 +1133,16 @@ sem corpo.
 
 ---
 
+## Validação administrativa
+
+As operações administrativas bem-sucedidas foram verificadas no ambiente local.
+
+Durante a validação pública em produção, foi confirmado que usuários comuns não conseguem executar operações administrativas.
+
+O fluxo administrativo completo com credenciais de administrador não foi executado durante a validação pública.
+
+---
+
 # Limitações atuais
 
 Alguns pontos estão fora do escopo atual do projeto:
@@ -1080,11 +1153,8 @@ Alguns pontos estão fora do escopo atual do projeto:
 - alterações de perfil no banco não invalidam automaticamente tokens já emitidos;
 - não existe suíte automatizada de testes versionada;
 - persistência após reinicialização completa da infraestrutura não foi testada diretamente;
-- cold start do serviço gratuito não foi provocado de forma controlada durante a validação.
-
-As permissões administrativas estão implementadas no código.
-
-A validação pública confirmou que usuários comuns não conseguem executar operações administrativas.
+- cold start do serviço gratuito não foi provocado de forma controlada durante a validação;
+- o servidor embutido do PHP é utilizado neste deploy demonstrativo.
 
 ---
 
@@ -1118,7 +1188,7 @@ O objetivo foi ir além de um CRUD simples e implementar conceitos utilizados em
 - variáveis de ambiente;
 - Docker;
 - deploy em nuvem;
-- banco de dados em produção.
+- banco de dados remoto.
 
 ---
 
