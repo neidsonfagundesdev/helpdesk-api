@@ -55,7 +55,7 @@ class UsuarioService
 
         //valida senha
         if (strlen($senha) < 8) {
-            throw new Exception("Senha deve possuir no mínimo 8 caracteres.");
+            throw new ValidacaoException("Senha deve possuir no mínimo 8 caracteres.");
         }
 
         // O bcrypt considera no máximo 72 bytes da senha.
@@ -77,6 +77,14 @@ class UsuarioService
     public function login(string $email, string $senha): array
     {
         $email = strtolower(trim($email));
+
+        // O bcrypt considera no máximo 72 bytes.
+        // No login, senhas maiores são tratadas como credenciais inválidas.
+        if (strlen($senha) > 72) {
+            throw new AutenticacaoException(
+                "E-mail ou senha inválidos."
+            );
+        }
 
         $usuario = $this->repository->buscarPorEmail($email);
 

@@ -51,10 +51,17 @@ class AuthMiddleware
             throw new AutenticacaoException("Token inválido ou expirado.");
         }
 
+        // Valida o momento de emissão do token.
+        // O token não pode ter sido emitido no futuro
+        // e o iat precisa ser anterior à expiração.
+        $agora = time();
+
         if (
             !isset($dadosToken["iat"])
             || !is_int($dadosToken["iat"])
             || $dadosToken["iat"] <= 0
+            || $dadosToken["iat"] > $agora
+            || $dadosToken["iat"] >= $dadosToken["exp"]
         ) {
             throw new AutenticacaoException("Token inválido.");
         }
