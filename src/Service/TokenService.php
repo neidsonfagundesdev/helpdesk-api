@@ -71,8 +71,8 @@ class TokenService
         }
     }
 
-    //Valida a estrutura básica do JWT antes da decodificação.
-    //Tokens malformados são tratados como erro de autenticação (401).
+    // Valida a estrutura básica do JWT antes da decodificação.
+    // Tokens malformados são tratados como erro de autenticação (401).
     private function validarEstruturaToken(string $token): void
     {
         $partes = explode(".", $token);
@@ -90,36 +90,85 @@ class TokenService
             }
         }
 
-        // Header e payload precisam conter JSON válido.
-        foreach (array_slice($partes, 0, 2) as $parte) {
-            $base64 = strtr($parte, "-_", "+/");
+        // Decodifica o header do JWT.
+        $headerBase64 = strtr($partes[0], "-_", "+/");
 
-            $resto = strlen($base64) % 4;
+        $resto = strlen($headerBase64) % 4;
 
-            if ($resto !== 0) {
-                $base64 .= str_repeat("=", 4 - $resto);
-            }
+        if ($resto !== 0) {
+            $headerBase64 .= str_repeat("=", 4 - $resto);
+        }
 
-            $json = base64_decode($base64, true);
+        $headerJson = base64_decode($headerBase64, true);
 
-            if ($json === false) {
-                throw new AutenticacaoException("Token inválido.");
-            }
+        if ($headerJson === false) {
+            throw new AutenticacaoException("Token inválido.");
+        }
 
-            try {
-                $dados = json_decode(
-                    $json,
-                    true,
-                    512,
-                    JSON_THROW_ON_ERROR
-                );
-            } catch (\JsonException $erro) {
-                throw new AutenticacaoException("Token inválido.");
-            }
+        try {
+            // Sem o parâmetro true para preservar objeto JSON como objeto PHP.
+            $header = json_decode(
+                $headerJson,
+                false,
+                512,
+                JSON_THROW_ON_ERROR
+            );
+        } catch (\JsonException $erro) {
+            throw new AutenticacaoException("Token inválido.");
+        }
 
-            if (!is_array($dados)) {
-                throw new AutenticacaoException("Token inválido.");
-            }
+        // O header JWT precisa ser um objeto.
+        if (!is_object($header)) {
+            throw new AutenticacaoException("Token inválido.");
+        }
+
+        // Este projeto aceita somente HS256.
+        if (
+            !isset($header->alg)
+            || !is_string($header->alg)
+            || $header->alg !== "HS256"
+        ) {
+            throw new AutenticacaoException("Token inválido.");
+        }
+
+        // Se kid estiver presente, precisa ser texto.
+        if (
+            property_exists($header, "kid")
+            && !is_string($header->kid)
+        ) {
+            throw new AutenticacaoException("Token inválido.");
+        }
+
+        // Decodifica e valida o payload.
+        $payloadBase64 = strtr($partes[1], "-_", "+/");
+
+        $resto = strlen($payloadBase64) % 4;
+
+        if ($resto !== 0) {
+            $payloadBase64 .= str_repeat("=", 4 - $resto);
+        }
+
+        $payloadJson = base64_decode($payloadBase64, true);
+
+        if ($payloadJson === false) {
+            throw new AutenticacaoException("Token inválido.");
+        }
+
+        try {
+            $payload = json_decode(
+                $payloadJson,
+                false,
+                512,
+                JSON_THROW_ON_ERROR
+            );
+        } catch (\JsonException $erro) {
+            throw new AutenticacaoException("Token inválido.");
+        }
+
+        // O payload JWT também precisa ser um objeto.
+        if (!is_object($payload)) {
+            throw new AutenticacaoException("Token inválido.");
         }
     }
+
 }
