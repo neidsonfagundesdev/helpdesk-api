@@ -1,10 +1,12 @@
 <?php
-                     /*Aqui ficam as regras de negócio antes do INSERT */
+/* Aqui ficam as regras de negócio dos chamados */
 
 namespace App\Service;
 
+use App\Exception\AutorizacaoException;
+use App\Exception\RecursoNaoEncontradoException;
+use App\Exception\ValidacaoException;
 use App\Repository\ChamadoRepository;
-use Exception;
 
 class ChamadoService
 {
@@ -15,70 +17,100 @@ class ChamadoService
         $this->repository = $repository;
     }
 
-    //método de criacao do titulo e descricão do chamado
-    public function criar(int $usuarioId, string $titulo, string $descricao): int
+    // Método de criação do título e descrição do chamado
+    public function criar(
+        int $usuarioId,
+        string $titulo,
+        string $descricao
+    ): int
     {
         $titulo = trim($titulo);
         $descricao = trim($descricao);
 
-        //valida o titulo
+        // Valida o título
         if ($titulo === "") {
-            throw new Exception("Título não pode estar vazio.");
+            throw new ValidacaoException("Título não pode estar vazio.");
         }
 
         if (mb_strlen($titulo, "UTF-8") > 150) {
-            throw new Exception("Título deve ter no máximo 150 caracteres.");
+            throw new ValidacaoException("Título deve ter no máximo 150 caracteres.");
         }
 
-        //valida a descricao
+        // Valida a descrição
         if ($descricao === "") {
-            throw new Exception("Descrição não pode estar vazia.");
+            throw new ValidacaoException("Descrição não pode estar vazia.");
         }
-        
-        //retorna a criacao apos as validacoes
-        return $this->repository->criar($usuarioId, $titulo, $descricao);
+
+        return $this->repository->criar(
+            $usuarioId,
+            $titulo,
+            $descricao
+        );
     }
 
-    //delega busca ao repository de acordo com o perfil
-    public function listar(int $usuarioId, string $perfil): array
+    // Delega a listagem ao Repository de acordo com o perfil
+    public function listar(
+        int $usuarioId,
+        string $perfil
+    ): array
     {
-        if ($perfil === "admin") {//ADM lista todos os chamados
+        if ($perfil === "admin") {
             return $this->repository->listarTodos();
         }
-        
-        //usuario comum lista todos os chamados ligados a ele pelo id
+
         return $this->repository->listarPorUsuario($usuarioId);
     }
 
-    //busca por id
-    public function buscarPorId(int $id, int $usuarioId, string $perfil): array
+    // Busca um chamado pelo ID respeitando o perfil do usuário
+    public function buscarPorId(
+        int $id,
+        int $usuarioId,
+        string $perfil
+    ): array
     {
-        //se for o admin busca todos chamados, user busca apenas o vinculado a ele
         if ($perfil === "admin") {
             $chamado = $this->repository->buscarPorIdGlobal($id);
         } else {
-            $chamado = $this->repository->buscarPorId($id, $usuario);
+            $chamado = $this->repository->buscarPorId(
+                $id,
+                $usuarioId
+            );
         }
 
         if ($chamado === null) {
-            throw new Exception("Chamado não encontrado.");
+            throw new RecursoNaoEncontradoException(
+                "Chamado não encontrado."
+            );
         }
 
         return $chamado;
     }
 
-        public function atualizar(int $id, int $usuarioId, ?string $titulo, ?string $descricao): array
+    // Atualiza título e/ou descrição de um chamado
+    public function atualizar(
+        int $id,
+        int $usuarioId,
+        ?string $titulo,
+        ?string $descricao
+    ): array
     {
         // Verifica se o chamado existe e pertence ao usuário
-        $chamado = $this->repository->buscarPorId($id, $usuarioId);
+        $chamado = $this->repository->buscarPorId(
+            $id,
+            $usuarioId
+        );
 
         if ($chamado === null) {
-            throw new Exception("Chamado não encontrado.");
+            throw new RecursoNaoEncontradoException(
+                "Chamado não encontrado."
+            );
         }
 
         // PATCH precisa receber pelo menos um campo
         if ($titulo === null && $descricao === null) {
-            throw new Exception("Informe ao menos um campo para atualizar.");
+            throw new ValidacaoException(
+                "Informe ao menos um campo para atualizar."
+            );
         }
 
         // Só valida título se ele foi enviado
@@ -86,11 +118,15 @@ class ChamadoService
             $titulo = trim($titulo);
 
             if ($titulo === "") {
-                throw new Exception("Título não pode estar vazio.");
+                throw new ValidacaoException(
+                    "Título não pode estar vazio."
+                );
             }
 
             if (mb_strlen($titulo, "UTF-8") > 150) {
-                throw new Exception("Título deve ter no máximo 150 caracteres.");
+                throw new ValidacaoException(
+                    "Título deve ter no máximo 150 caracteres."
+                );
             }
         }
 
@@ -99,7 +135,9 @@ class ChamadoService
             $descricao = trim($descricao);
 
             if ($descricao === "") {
-                throw new Exception("Descrição não pode estar vazia.");
+                throw new ValidacaoException(
+                    "Descrição não pode estar vazia."
+                );
             }
         }
 
@@ -110,29 +148,42 @@ class ChamadoService
             $descricao
         );
 
-        // Busca novamente para devolver o chamado já atualizado
-        return $this->repository->buscarPorId($id, $usuarioId);
+        return $this->repository->buscarPorId(
+            $id,
+            $usuarioId
+        );
     }
 
-    //metodo para excluir chamado. 
-    //vai transformar o false do chamado repository em "chamado nao encontrado"
-        public function excluir(int $id, int $usuarioId): void
+    // Exclui um chamado pertencente ao usuário
+    public function excluir(
+        int $id,
+        int $usuarioId
+    ): void
     {
-        $excluido = $this->repository->excluir($id, $usuarioId);
+        $excluido = $this->repository->excluir(
+            $id,
+            $usuarioId
+        );
 
-        /*Repository retorna false
-        → chamado não existe ou pertence a outro usuário
-        → Service lança "Chamado não encontrado." */
         if (!$excluido) {
-            throw new Exception("Chamado não encontrado.");
+            throw new RecursoNaoEncontradoException(
+                "Chamado não encontrado."
+            );
         }
     }
 
-    //atualiza o status
-    public function atualizarStatus(int $id, string $status, string $perfil): array
+    // Atualiza o status do chamado
+    public function atualizarStatus(
+        int $id,
+        string $status,
+        string $perfil
+    ): array
     {
+        // Apenas administradores podem alterar o status
         if ($perfil !== "admin") {
-            throw new Exception("Acesso negado.");
+            throw new AutorizacaoException(
+                "Acesso negado."
+            );
         }
 
         $status = trim($status);
@@ -143,15 +194,18 @@ class ChamadoService
             "resolvido"
         ];
 
-        //O valor recebido está dentro desta lista? Se não, retorna o erro.
         if (!in_array($status, $statusPermitidos, true)) {
-            throw new Exception("Status inválido.");
+            throw new ValidacaoException(
+                "Status inválido."
+            );
         }
 
         $chamado = $this->repository->buscarPorIdGlobal($id);
 
         if ($chamado === null) {
-            throw new Exception("Chamado não encontrado.");
+            throw new RecursoNaoEncontradoException(
+                "Chamado não encontrado."
+            );
         }
 
         $this->repository->atualizarStatus(
@@ -161,5 +215,4 @@ class ChamadoService
 
         return $this->repository->buscarPorIdGlobal($id);
     }
-
 }

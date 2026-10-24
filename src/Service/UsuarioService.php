@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Exception\AutenticacaoException;
 use App\Repository\UsuarioRepository;
 use Exception;
 
@@ -70,12 +71,12 @@ class UsuarioService
         $usuario = $this->repository->buscarPorEmail($email);
 
         if ($usuario === null) {
-            throw new Exception("E-mail ou senha inválidos.");
+            throw new AutenticacaoException("E-mail ou senha inválidos.");
         }
         //password_verify compara a senha em texto puro com o hash salvo no banco.
         //retorna um valor booleano
         if (!password_verify($senha, $usuario["senha"])) {
-            throw new Exception("E-mail ou senha inválidos.");
+            throw new AutenticacaoException("E-mail ou senha inválidos.");
         }
         //gera o token    
         $token = $this->tokenService->gerarToken($usuario);

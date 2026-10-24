@@ -2,6 +2,7 @@
 
 namespace App\Middleware;
 
+use App\Exception\AutenticacaoException;
 use App\Service\TokenService;
 
 class AuthMiddleware
@@ -19,21 +20,44 @@ class AuthMiddleware
         $authorization = $_SERVER["HTTP_AUTHORIZATION"] ?? null;
 
         if ($authorization === null) {
-            throw new \Exception("Token não informado.");
+            throw new AutenticacaoException("Token não informado.");
         }
-        //verifica se o texto comeca com Bearer
-        if (!str_starts_with($authorization, "Bearer")) {
-            throw new \Exception("Formato de Token inválido.");
+        // Verifica se o header segue o formato: Bearer TOKEN
+        if (!str_starts_with($authorization, "Bearer ")) {
+            throw new AutenticacaoException("Formato de Token inválido.");
         }
 
-        //remove os 7 caracteres iniciais
-        $token = substr($authorization, 7);
+        // Remove "Bearer " e elimina espaços extras
+        $token = trim(substr($authorization, 7));
 
         if ($token === "") {
-            throw new \Exception("Token não informado.");
+            throw new AutenticacaoException("Token não informado.");
         }
 
-        //enviado para validar e se estiver certo recebemos payload
-        return $this->tokenService->validarToken($token);
+        //Valida os dados essenciais do JWT antes de liberar a requisição.
+        //Confirma se o token possui um ID de usuário válido e um perfil permitido.
+        $dadosToken = $this->tokenService->validarToken($token);
+
+        // Confirma se o perfil presente no token é permitido.
+        if (
+            !isset($dadosToken["sub"])
+            || !is_numeric($dadosToken["sub"])
+            || (int) $dadosToken["sub"] <= 0
+        ) {
+            throw new AutenticacaoException("Token inválido.");
+        }
+
+        if (
+            !isset($dadosToken["perfil"])
+            || !is_string($dadosToken["perfil"])
+            || !in_array($dadosToken["perfil"], ["user", "admin"], true)
+        ) {
+            throw new AutenticacaoException("Token inválido.");
+        }
+
+        //Normaliza o ID do usuário para inteiro antes de retornar os dados do token.
+        $dadosToken["sub"] = (int) $dadosToken["sub"];
+
+        return $dadosToken;
     }
 }

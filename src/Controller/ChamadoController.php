@@ -2,8 +2,10 @@
 
 namespace App\Controller;
 
+use App\Exception\AutorizacaoException;
+use App\Exception\RecursoNaoEncontradoException;
+use App\Exception\ValidacaoException;
 use App\Service\ChamadoService;
-use Exception;
 use PDOException;
 
 class ChamadoController
@@ -83,12 +85,13 @@ class ChamadoController
             http_response_code(500);
             echo json_encode(["erro" => "Erro interno do servidor."]);
 
-        } catch (Exception $erro) {
+        } catch (ValidacaoException $erro) {
             http_response_code(400);
             echo json_encode(["erro" => $erro->getMessage()]);
         }
     }
 
+    //metodo listar
     public function listar(int $usuarioId, string $perfil): void
     {
         try {
@@ -105,6 +108,7 @@ class ChamadoController
         }
     }
 
+    //buscar por id
     public function buscarPorId(int $id, int $usuarioId, string $perfil): void
     {
         try {
@@ -123,12 +127,13 @@ class ChamadoController
             http_response_code(500);
             echo json_encode(["erro" => "Erro interno do servidor."]);
 
-        } catch (Exception $erro) {
+        } catch (RecursoNaoEncontradoException $erro) {
             http_response_code(404);
             echo json_encode(["erro" => $erro->getMessage()]);
         }
     }
 
+    //metodo atualizar
     public function atualizar(int $id, int $usuarioId): void
     {
         $corpo = file_get_contents("php://input");
@@ -197,17 +202,18 @@ class ChamadoController
 
             echo json_encode(["erro" => "Erro interno do servidor."]);
 
-        } catch (Exception $erro) {
-            //operador ternario, se a mensagem que retorna for exatamente
-            //a string comparada status 404 se não 400
-            $status = $erro->getMessage() === "Chamado não encontrado." ? 404 : 400;
+        } catch (RecursoNaoEncontradoException $erro) {
+            http_response_code(404);
+            echo json_encode(["erro" => $erro->getMessage()]);
 
-            http_response_code($status);
-
+        } catch (ValidacaoException $erro) {
+            http_response_code(400);
             echo json_encode(["erro" => $erro->getMessage()]);
         }
+
     }
 
+    //metodo excluir
     public function excluir(int $id, int $usuarioId): void
     {
         try {
@@ -220,7 +226,7 @@ class ChamadoController
             http_response_code(500);
             echo json_encode(["erro" => "Erro interno do servidor."]);
 
-        } catch (Exception $erro) {
+        } catch (RecursoNaoEncontradoException $erro) {
             http_response_code(404);
             echo json_encode(["erro" => $erro->getMessage()]);
         }
@@ -279,20 +285,18 @@ class ChamadoController
             http_response_code(500);
             echo json_encode(["erro" => "Erro interno do servidor."]);
 
-        } catch (Exception $erro) {
+        } catch (AutorizacaoException $erro) {
+            http_response_code(403);//→ 403 Forbidden → user tentando alterar status
+            echo json_encode(["erro" => $erro->getMessage()]);
 
-            if ($erro->getMessage() === "Acesso negado.") {
-                http_response_code(403);//→ 403 Forbidden → user tentando alterar status
+        } catch (RecursoNaoEncontradoException $erro) {
+            http_response_code(404);
+            echo json_encode(["erro" => $erro->getMessage()]);
 
-            } elseif ($erro->getMessage() === "Chamado não encontrado.") {
-                http_response_code(404);
-
-            } else {
-                http_response_code(400);
-            }
-
+        } catch (ValidacaoException $erro) {
+            http_response_code(400);
             echo json_encode(["erro" => $erro->getMessage()]);
         }
-    }
 
+    }
 }

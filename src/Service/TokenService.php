@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Exception\AutenticacaoException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Exception;
@@ -63,7 +64,7 @@ class TokenService
             return (array) $dados;
         //se estiver errado lanca a excecão
         } catch (\UnexpectedValueException $erro) {
-            throw new Exception("Token inválido ou expirado.");
+            throw new AutenticacaoException("Token inválido ou expirado.");
         }
     }
 }

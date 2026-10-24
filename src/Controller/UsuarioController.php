@@ -2,11 +2,12 @@
 
 namespace App\Controller;
 
+use App\Exception\AutenticacaoException;
 use App\Service\UsuarioService;
 use Exception;
 use PDOException;
 
-class usuarioController
+class UsuarioController
 {
     private UsuarioService $service;
 
@@ -74,7 +75,7 @@ class usuarioController
 
             echo json_encode([
                 "id" => $novoId,
-                "nome" => $nome,
+                "nome" => trim($nome),
                 "email" => strtolower(trim($email))
             ]);
 
@@ -141,7 +142,12 @@ class usuarioController
             "token" => $resultado["token"]
             ]);
 
-        } catch (Exception $erro) {
+        } catch (PDOException $erro) {
+            error_log($erro->getMessage());
+            http_response_code(500);
+            echo json_encode(["erro" => "Erro interno do servidor."]);
+
+        } catch (AutenticacaoException $erro) {
             http_response_code(401); //Unauthorized -> Você não conseguiu provar quem é.
             echo json_encode(["erro" => $erro->getMessage()]);
         }
@@ -158,6 +164,11 @@ class usuarioController
             http_response_code(200);
 
             echo json_encode(["usuario" => $usuario]);
+
+        } catch (PDOException $erro) {
+            error_log($erro->getMessage());
+            http_response_code(500);
+            echo json_encode(["erro" => "Erro interno do servidor."]);
 
         } catch (Exception $erro) {
             http_response_code(404);

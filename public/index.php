@@ -3,6 +3,7 @@
 require_once __DIR__ . "/../vendor/autoload.php";
 require_once __DIR__ . "/../config/database.php";
 
+use App\Exception\AutenticacaoException;
 use App\Repository\UsuarioRepository;
 use App\Service\UsuarioService;
 use App\Service\TokenService;
@@ -13,6 +14,22 @@ use App\Service\ChamadoService;
 use App\Controller\ChamadoController;
 
 header("Content-Type: application/json; charset=UTF-8");
+
+//Centraliza a autenticação das rotas protegidas.
+//Se o token for válido, retorna os dados do JWT.
+//Se for inválido ou ausente, responde 401 e retorna null.
+function autenticar(AuthMiddleware $authMiddleware): ?array// array ou null
+{
+    try {
+
+        return $authMiddleware->autenticar();
+
+    } catch (AutenticacaoException $erro) {
+        http_response_code(401);
+        echo json_encode(["erro" => $erro->getMessage()]);
+        return null;
+    }
+}
 
 try{
     //cria as dependencias
@@ -41,19 +58,20 @@ try{
         exit;
     }
 
+    //rota para usuario autenticado buscar os próprios dados
     if ($metodo === "GET" && $rota ==="/me") {
-        
-        try {
-            $dadosToken = $authMiddleware->autenticar();
+        //Valida o token da rota protegida.
+        //Se a autenticação falhar, a função já responde 401 e retorna null.        
+        $dadosToken = autenticar($authMiddleware);
 
-            $usuarioId = (int) $dadosToken["sub"];
-
-            $controller->me($usuarioId);
-
-        } catch (\Exception $erro) {
-            http_response_code(401);
-            echo json_encode(["erro" => $erro->getMessage()]);
+        //Se não houver usuário autenticado, encerra a execução da rota.
+        if ($dadosToken === null) {
+            exit;
         }
+
+        $usuarioId = (int) $dadosToken["sub"];
+
+        $controller->me($usuarioId);
 
         exit;
     }
@@ -61,18 +79,16 @@ try{
     //rota para abertura do chamado
     if ($metodo === "POST" && $rota === "/chamados") {
 
-        try {
-            $dadosToken = $authMiddleware->autenticar();
-            
-            //O usuário não escolhe o usuario_id é a API que descobre
-            $usuarioId = (int) $dadosToken["sub"];
+        $dadosToken = autenticar($authMiddleware);
 
-            $chamadoController->criar($usuarioId);
-
-        } catch (\Exception $erro) {
-            http_response_code(401);
-            echo json_encode(["erro" => $erro->getMessage()]);
+        if ($dadosToken === null) {
+            exit;
         }
+            
+        //O usuário não escolhe o usuario_id é a API que descobre
+        $usuarioId = (int) $dadosToken["sub"];
+
+        $chamadoController->criar($usuarioId);
 
         exit;
 
@@ -81,18 +97,16 @@ try{
     //método get para listar os chamados
     if ($metodo === "GET" && $rota === "/chamados") {
 
-        try {
-            $dadosToken = $authMiddleware->autenticar();
+        $dadosToken = autenticar($authMiddleware);
 
-            $usuarioId = (int) $dadosToken["sub"];
-            $perfil = $dadosToken["perfil"];//verifica tambem o perfil para os casos do ADM
-
-            $chamadoController->listar($usuarioId, $perfil);
-
-        } catch (\Exception $erro) {
-            http_response_code(401);
-            echo json_encode(["erro" => $erro->getMessage()]);
+        if ($dadosToken === null) {
+            exit;
         }
+
+        $usuarioId = (int) $dadosToken["sub"];
+        $perfil = $dadosToken["perfil"];//verifica tambem o perfil para os casos do ADM
+
+        $chamadoController->listar($usuarioId, $perfil);
 
         exit;
 
@@ -103,46 +117,39 @@ try{
     * /chamados/25
     * /chamados/999*/
     if ($metodo === "GET" && preg_match("#^/chamados/([1-9][0-9]*)$#", $rota, $matches)) {
+        
+        $dadosToken = autenticar($authMiddleware);
 
-        try {
-            $dadosToken = $authMiddleware->autenticar();
-
-            $usuarioId = (int) $dadosToken["sub"];
-            $perfil = $dadosToken["perfil"];
-            $chamadoId = (int) $matches[1];
-
-            $chamadoController->buscarPorId(
-                $chamadoId,
-                $usuarioId,
-                $perfil
-            );
-
-        } catch (\Exception $erro) {
-            http_response_code(401);
-
-            echo json_encode([
-                "erro" => $erro->getMessage()
-            ]);
+        if ($dadosToken === null) {
+            exit;
         }
+
+        $usuarioId = (int) $dadosToken["sub"];
+        $perfil = $dadosToken["perfil"];
+        $chamadoId = (int) $matches[1];
+
+        $chamadoController->buscarPorId(
+            $chamadoId,
+            $usuarioId,
+            $perfil
+        );
 
         exit;
 
     }
 
     if ($metodo === "PATCH" && preg_match("#^/chamados/([1-9][0-9]*)$#", $rota, $matches)) {
+        
+        $dadosToken = autenticar($authMiddleware);
 
-        try {
-            $dadosToken = $authMiddleware->autenticar();
-
-            $usuarioId = (int) $dadosToken["sub"];
-            $chamadoId = (int) $matches[1];
-
-            $chamadoController->atualizar($chamadoId, $usuarioId);
-
-        } catch (\Exception $erro) {
-            http_response_code(401);
-            echo json_encode(["erro" => $erro->getMessage()]);
+        if ($dadosToken === null) {
+            exit;
         }
+
+        $usuarioId = (int) $dadosToken["sub"];
+        $chamadoId = (int) $matches[1];
+
+        $chamadoController->atualizar($chamadoId, $usuarioId);
 
         exit;
 
@@ -150,18 +157,16 @@ try{
 
     if ($metodo === "DELETE" && preg_match("#^/chamados/([1-9][0-9]*)$#", $rota, $matches)) {
 
-        try {
-            $dadosToken = $authMiddleware->autenticar();
+        $dadosToken = autenticar($authMiddleware);
 
-            $usuarioId = (int) $dadosToken["sub"];
-            $chamadoId = (int) $matches[1];
-
-            $chamadoController->excluir($chamadoId, $usuarioId);
-
-        } catch (\Exception $erro) {
-            http_response_code(401);
-            echo json_encode(["erro" => $erro->getMessage()]);
+        if ($dadosToken === null) {
+            exit;
         }
+
+        $usuarioId = (int) $dadosToken["sub"];
+        $chamadoId = (int) $matches[1];
+
+        $chamadoController->excluir($chamadoId, $usuarioId);
 
         exit;
     }
@@ -172,21 +177,16 @@ try{
     captura o ID em $matches[1]*/
     if ($metodo === "PATCH" && preg_match("#^/chamados/([1-9][0-9]*)/status$#", $rota, $matches)) {
 
-        try {
-            $dadosToken = $authMiddleware->autenticar();
+        $dadosToken = autenticar($authMiddleware);
 
-            $perfil = $dadosToken["perfil"];
-            $chamadoId = (int) $matches[1];
-
-            $chamadoController->atualizarStatus(
-                $chamadoId,
-                $perfil
-            );
-
-        } catch (\Exception $erro) {
-            http_response_code(401);
-            echo json_encode(["erro" => $erro->getMessage()]);
+        if ($dadosToken === null) {
+            exit;
         }
+
+        $perfil = $dadosToken["perfil"];
+        $chamadoId = (int) $matches[1];
+
+        $chamadoController->atualizarStatus($chamadoId, $perfil);
 
         exit;
 
